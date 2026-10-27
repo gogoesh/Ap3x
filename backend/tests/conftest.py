@@ -14,3 +14,13 @@ def client():
     app = create_app()          # fresh in-memory data for every test
     app.config["TESTING"] = True
     return app.test_client()
+
+@pytest.fixture
+def review_payload():
+    return {"rating": 4, "text": "Great project-based class.",
+            "term": "Fall 2025", "grade": "A-", "difficulty": 3, "workload": 4}
+
+
+@pytest.fixture
+def author_headers():
+    return {"X-User-Id": "1"}
