@@ -33,7 +33,7 @@ class Course:
     id: int
     code: str
     title: str
-    units: str
+    units: int
     description: str = ""
     prerequisites: list[str] = field(default_factory=list)
 
@@ -49,8 +49,8 @@ class Review:
     text: str
 
     instructor_id: Optional[int] = None
-    term: Optional[int] = None              # e.g. "Fall 2026"
-    grade: Optional[int] = None             # e.g. "B+"
+    term: Optional[str] = None              # e.g. "Fall 2026"
+    grade: Optional[str] = None             # e.g. "B+"
     difficulty: Optional[int] = None        # 1-5
     workload: Optional[int] = None          # 1-5
     status: str = "published"               # published, hidden or removed
