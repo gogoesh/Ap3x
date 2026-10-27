@@ -28,6 +28,12 @@ def test_review_for_unknown_course_returns_404(client, review_payload, author_he
     assert create(client, review_payload, author_headers, course_id=999).status_code == 404
 
 
+def test_ids_are_not_reused_after_delete(client, review_payload, author_headers):
+    create(client, review_payload, author_headers)
+    client.delete("/api/reviews/1", headers=author_headers)
+    res = create(client, review_payload, author_headers)
+    assert res.get_json()["id"] == 2
+
 # ----- validation -----------------------------------------------------------
 def test_create_requires_author_header(client, review_payload):
     assert create(client, review_payload, {}).status_code == 401
@@ -47,3 +53,30 @@ def test_create_rejects_bad_input(client, author_headers, payload, message):
     res = create(client, payload, author_headers)
     assert res.status_code == 400
     assert res.get_json()["error"] == message
+
+
+# ----- update / delete + ownership ------------------------------------------
+def test_author_can_update_review(client, review_payload, author_headers):
+    create(client, review_payload, author_headers)
+    res = client.patch("/api/reviews/1", json={"rating": 5}, headers=author_headers)
+    assert res.status_code == 200
+    assert res.get_json()["rating"] == 5
+    assert res.get_json()["updated_at"] is not None
+
+
+def test_other_user_cannot_update_review(client, review_payload, author_headers):
+    create(client, review_payload, author_headers)
+    res = client.patch("/api/reviews/1", json={"rating": 1}, headers={"X-User-Id": "2"})
+    assert res.status_code == 403
+
+
+def test_author_can_delete_review(client, review_payload, author_headers):
+    create(client, review_payload, author_headers)
+    assert client.delete("/api/reviews/1", headers=author_headers).status_code == 204
+    assert client.get("/api/reviews/1").status_code == 404
+
+
+def test_other_user_cannot_delete_review(client, review_payload, author_headers):
+    create(client, review_payload, author_headers)
+    res = client.delete("/api/reviews/1", headers={"X-User-Id": "2"})
+    assert res.status_code == 403

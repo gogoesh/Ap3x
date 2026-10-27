@@ -41,3 +41,15 @@ def create_review(course_id: int):
 @bp.get("/reviews/<int:review_id>")
 def get_review(review_id: int):
     return jsonify(_reviews().get_review(review_id).to_dict())
+
+
+@bp.patch("/reviews/<int:review_id>")
+def update_review(review_id: int):
+    review = _reviews().update_review(review_id, _json_body(), _current_user_id())
+    return jsonify(review.to_dict())
+
+
+@bp.delete("/reviews/<int:review_id>")
+def delete_review(review_id: int):
+    _reviews().delete_review(review_id, _current_user_id())
+    return "", 204

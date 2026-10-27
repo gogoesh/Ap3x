@@ -1,8 +1,8 @@
 """Review rules: validation, ownership, and the review lifecycle."""
 from typing import Optional
 
-from models import Review
-from services.errors import NotFoundError, UnauthorizedError, ValidationError
+from models import Review, utc_now
+from services.errors import NotFoundError, UnauthorizedError, ValidationError, ForbiddenError
 
 MAX_TEXT_LENGTH = 2000
 SCORED_FIELDS = ("rating", "difficulty", "workload")      # all 1-5
@@ -47,6 +47,24 @@ class ReviewService:
         )
         return self.reviews.add(review)
 
+    def update_review(self, review_id: int, data: Optional[dict],
+                      author_id: Optional[int]) -> Review:
+        self._require_author(author_id)
+        review = self.get_review(review_id)
+        self._require_owner(review, author_id)
+        data = self._validate(data, partial=True)
+
+        for key, value in data.items():
+            setattr(review, key, value)
+        review.updated_at = utc_now()
+        return self.reviews.update(review)
+
+    def delete_review(self, review_id: int, author_id: Optional[int]) -> None:
+        self._require_author(author_id)
+        review = self.get_review(review_id)
+        self._require_owner(review, author_id)
+        self.reviews.delete(review_id)
+
     # ----- helpers -------------------------------------------------------
     @staticmethod
     def _require_author(author_id: Optional[int]) -> None:
@@ -55,6 +73,11 @@ class ReviewService:
         # X-User-Id header.
         if author_id is None:
             raise UnauthorizedError("X-User-Id header required")
+
+    @staticmethod
+    def _require_owner(review: Review, author_id: int) -> None:
+        if review.author_id != author_id:
+            raise ForbiddenError("Only the author can change this review")
 
     @staticmethod
     def _validate(data: Optional[dict], partial: bool) -> dict:
